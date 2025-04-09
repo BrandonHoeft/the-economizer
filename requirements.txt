@@ -1,0 +1,24 @@
+# Core dependencies
+dash>=2.14.0
+dash-bootstrap-components>=1.5.0
+plotly>=5.18.0
+sqlalchemy>=2.0.20
+psycopg2-binary>=2.9.9
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+playwright>=1.40.0
+
+# AI/ML components
+sentence-transformers>=2.2.2
+llm>=0.12.0  # Simon Willison's LLM wrapper
+pgvector>=0.2.3  # PostgreSQL vector extension client
+
+# Development tools
+python-dotenv>=1.0.0  # reads key-value pairs from a .env file and can set them as environment variables
+pytest>=7.4.0
+black>=23.7.0
+flake8>=6.1.0

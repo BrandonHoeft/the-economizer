@@ -12,23 +12,25 @@ Personal use only (proof-of-concept stage).
 
 ## 2. System Architecture
 
+```mermaid
+flowchart TD
+    A["Web Scraper
+Python"] -->|Store article content| B["PostgreSQL DB
+Article Content +
+pg_vector Embeddings"]
+    A -->|Generate| C["Embedding
+Model"]
+    C -->|Store embeddings| B
+    D["Web App UI
+Dash Plotly"] -->|Query| B
+    D -->|Generate summaries| E["LLM Model
+via llm wrapper"]
+    B -->|Retrieve context| E
+    F["Cron/Orchestration
+weekly ETL"] -->|Trigger| A
 ```
-┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-│               │      │               │      │               │
-│  Web Scraper  │─────▶│ PostgreSQL DB │◀─────│  Web App UI   │
-│  (Python)     │      │ (pg_vector)   │      │  (Dash Plotly)│
-│               │      │               │      │               │
-└───────┬───────┘      └───────────────┘      └───────┬───────┘
-        │                                             │
-        │                                             │
-        ▼                                             ▼
-┌───────────────┐                           ┌───────────────┐
-│               │                           │               │
-│  Embedding    │                           │  LLM Model    │
-│  Model        │                           │  (via llm     │
-│               │                           │   wrapper)    │
-└───────────────┘                           └───────────────┘
-```
+
+> **Note**: PostgreSQL serves dual purposes - storing both the original article content and the vector embeddings in separate tables within the same database. Cron jobs will handle the regular ETL processes, with future plans to potentially migrate to Prefect for more sophisticated orchestration.
 
 ## 3. Core Technologies
 
@@ -40,10 +42,56 @@ Personal use only (proof-of-concept stage).
 ### Backend Components
 - **Web Scraping**: Python scripts with authentication for The Economist website
 - **Database**: PostgreSQL with pg_vector extension for vector embeddings
-- **Embeddings**: Sentence-Transformers (all-MiniLM-L6-v2) for generating text embeddings
+- **Embeddings**: Sentence-Transformers for generating text embeddings
 - **AI Model Integration**: Simon Willison's LLM wrapper (https://github.com/simonw/llm)
-- **Summarization Model**: A top open-source summarization model from Hugging Face
+- **Summarization Model**: Open-source, lightweight model from Hugging Face
 - **Scheduling**: Basic cron job for weekly updates
+
+### AI Model Recommendations
+
+#### Hardware Considerations
+Running on a MacBook Pro 2017 with:
+- 2.3 GHz Dual-Core Intel Core i5 processor
+- Intel Integrated Graphics
+- 16 GB 2133 MHz LPDDR3 memory
+
+**Optimization Priority**: Performance and ease of integration over accuracy for the POC phase.
+
+#### Embedding Models
+Optimizing for: lightweight, CPU-friendly, fast inference on older hardware
+
+**Top 3 Embedding Model Options:**
+1. **Sentence-Transformers all-MiniLM-L6-v2** (Recommended)
+   - Pros: Very lightweight (80MB), runs well on CPU, fast inference
+   - Cons: Fixed 384-dimension embeddings, moderate accuracy
+   
+2. **BERT-tiny embeddings**
+   - Pros: Extremely lightweight (17MB), fastest inference on CPU
+   - Cons: Lower accuracy, less semantic richness
+   
+3. **GloVe embeddings**
+   - Pros: Non-neural network approach, extremely efficient on CPU
+   - Cons: Less contextual understanding, older technology
+
+#### Summarization Models
+Optimizing for: CPU-friendly, minimal memory footprint, quick response time
+
+**Top 3 Summarization Model Options:**
+1. **Phi-2** (Recommended)
+   - Pros: Only 2.7B parameters, exceptional performance-to-size ratio, runs on CPU
+   - Cons: Smaller context window (2048 tokens)
+
+2. **TinyLlama-1.1B-Chat**
+   - Pros: Ultra-compact at 1.1B parameters, designed for resource-constrained environments
+   - Cons: Limited reasoning capabilities, struggles with complex instructions
+
+3. **BART-base-cnn**
+   - Pros: Task-specific for summarization, smaller than BART-large, fast inference
+   - Cons: Less flexible than instruction-tuned models
+
+> **Recommendation:** For your MacBook Pro 2017 hardware constraints, use **all-MiniLM-L6-v2** for embeddings and **Phi-2** for summarization. This combination will provide reasonable performance without overwhelming your CPU or memory resources. Both models are widely used, well-documented, and optimized for inference on CPU.
+
+> **Future State:** When migrating to AWS, consider upgrading to more powerful models like **all-mpnet-base-v2** for embeddings and **Llama-3-8B-Instruct** or **Mixtral-8x7B** for summarization to improve accuracy while leveraging cloud GPU resources.
 
 ### Frontend Components
 - **Web Framework**: Dash Plotly for Python-based web interface
@@ -162,8 +210,19 @@ Once the proof-of-concept is working:
 4. Add notification system for new content
 5. Expand to other news sources
 6. Implement history tracking of queries and responses
+7. **AWS Migration**: Move from local development to AWS hosting
+   - Utilize cloud GPU resources for more powerful models
+   - Upgrade to more accurate models (Llama-3-8B, Mixtral-8x7B)
+   - Implement auto-scaling for handling larger content volumes
+   - Set up proper CI/CD pipeline for deployment
 
 ## 9. Technical Considerations
+
+### Hardware Constraints
+- Optimize for MacBook Pro 2017 (2.3 GHz Dual-Core Intel Core i5, 16GB RAM)
+- Monitor memory usage during model inference
+- Implement batch processing for large document sets to avoid memory issues
+- Consider model quantization techniques to reduce memory footprint
 
 ### Security
 - Store credentials securely (environment variables)
@@ -171,9 +230,11 @@ Once the proof-of-concept is working:
 - Ensure secure local storage of content
 
 ### Performance
-- Optimize embedding storage and retrieval
-- Consider chunking strategies for large articles
-- Monitor and optimize LLM response times
+- Prioritize model loading time and inference speed over accuracy for POC
+- Optimize embedding storage and retrieval with appropriate pg_vector indexing
+- Consider article chunking strategies to improve relevance in RAG pipeline
+- Implement caching mechanisms for frequent queries
+- Use async processing where appropriate to maintain UI responsiveness
 
 ### Maintenance
 - Regular updates to dependencies

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  economizer-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - ~/.cache/huggingface:/home/economizer/.cache/huggingface  # Cache for HF models
+    ports:
+      - "8050:8050"  # Dash Plotly default port
+    environment:
+      - DATABASE_URL=postgresql://economizer:economizer@economizer-db:5432/economizer
+      - PYTHONPATH=/app
+    depends_on:
+      - economizer-db
+    networks:
+      - economizer_network
+
+  economizer-db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=economizer
+      - POSTGRES_PASSWORD=economizer
+      - POSTGRES_DB=economizer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init_scripts:/docker-entrypoint-initdb.d
+    networks:
+      - economizer_network
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_vector"
+
+networks:
+  economizer_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

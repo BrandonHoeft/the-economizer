@@ -19,7 +19,7 @@ services:
       - economizer_network
 
   economizer-db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     ports:
       - "5432:5432"
     environment:
@@ -31,10 +31,6 @@ services:
       - ./db/init_scripts:/docker-entrypoint-initdb.d
     networks:
       - economizer_network
-    command:
-      - "postgres"
-      - "-c"
-      - "shared_preload_libraries=pg_vector"
 
 networks:
   economizer_network:
